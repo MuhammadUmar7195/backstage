@@ -34,6 +34,7 @@ import {
   serializeError,
 } from './util';
 import { SchedulerServiceTaskFunction } from '@backstage/backend-plugin-api';
+import { TaskPollResult, TaskStatePoller } from './TaskStatePoller';
 
 const DEFAULT_WORK_CHECK_FREQUENCY = Duration.fromObject({ seconds: 5 });
 
@@ -58,6 +59,7 @@ export class TaskWorker {
     knex: Knex,
     logger: LoggerService,
     workCheckFrequency: Duration = DEFAULT_WORK_CHECK_FREQUENCY,
+    private readonly poller?: TaskStatePoller,
   ) {
     this.taskId = taskId;
     this.fn = fn;
@@ -93,11 +95,15 @@ export class TaskWorker {
           await this.performInitialWait(settings, options.signal);
 
           while (!options.signal.aborted) {
-            const runResult = await this.runOnce(options.signal);
+            const runResult = this.poller
+              ? await this.runOnceViaPoller(options.signal)
+              : await this.runOnce(options.signal);
             if (runResult.result === 'abort') {
               break;
             }
-            await sleep(workCheckFrequency, options.signal);
+            if (!this.poller) {
+              await sleep(workCheckFrequency, options.signal);
+            }
           }
 
           this.logger.info(`Task worker finished: ${this.taskId}`);
@@ -229,8 +235,7 @@ export class TaskWorker {
 
   /**
    * Makes a single attempt at running the task to completion, if ready.
-   *
-   * @returns The outcome of the attempt
+   * Uses direct DB query to check readiness.
    */
   private async runOnce(
     signal: AbortSignal,
@@ -247,8 +252,41 @@ export class TaskWorker {
     ) {
       return findResult;
     }
+    return this.claimAndRun(findResult.settings, signal);
+  }
 
-    const taskSettings = findResult.settings;
+  /**
+   * Like runOnce, but waits for the shared poller to signal readiness instead
+   * of querying the database directly. The poller's poll interval replaces
+   * the caller's sleep.
+   */
+  private async runOnceViaPoller(
+    signal: AbortSignal,
+  ): Promise<
+    | { result: 'not-ready-yet' }
+    | { result: 'abort' }
+    | { result: 'failed' }
+    | { result: 'completed' }
+  > {
+    const findResult: TaskPollResult = await this.poller!.waitForReady(
+      this.taskId,
+      signal,
+    );
+    if (
+      findResult.result === 'not-ready-yet' ||
+      findResult.result === 'abort'
+    ) {
+      return findResult;
+    }
+    return this.claimAndRun(findResult.settings, signal);
+  }
+
+  private async claimAndRun(
+    taskSettings: TaskSettingsV2,
+    signal: AbortSignal,
+  ): Promise<
+    { result: 'not-ready-yet' } | { result: 'failed' } | { result: 'completed' }
+  > {
     const ticket = uuid();
 
     const claimed = await this.tryClaimTask(ticket, taskSettings);
