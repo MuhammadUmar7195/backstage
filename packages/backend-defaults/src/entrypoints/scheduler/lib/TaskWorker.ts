@@ -34,7 +34,11 @@ import {
   serializeError,
 } from './util';
 import { SchedulerServiceTaskFunction } from '@backstage/backend-plugin-api';
-import { TaskPollResult, TaskStatePoller } from './TaskStatePoller';
+import {
+  TaskListener,
+  TaskPollResult,
+  TaskStatePoller,
+} from './TaskStatePoller';
 
 const DEFAULT_WORK_CHECK_FREQUENCY = Duration.fromObject({ seconds: 5 });
 
@@ -81,6 +85,8 @@ export class TaskWorker {
       `Registered scheduled task: ${this.taskId}, ${JSON.stringify(settings)}`,
     );
 
+    const listener = this.poller.setupListener(this.taskId);
+
     (async () => {
       let attemptNum = 1;
       for (;;) {
@@ -88,7 +94,7 @@ export class TaskWorker {
           await this.performInitialWait(settings, options.signal);
 
           while (!options.signal.aborted) {
-            const runResult = await this.runOnce(options.signal);
+            const runResult = await this.runOnce(listener, options.signal);
             if (runResult.result === 'abort') {
               break;
             }
@@ -227,6 +233,7 @@ export class TaskWorker {
    * the database directly.
    */
   private async runOnce(
+    listener: TaskListener,
     signal: AbortSignal,
   ): Promise<
     | { result: 'not-ready-yet' }
@@ -234,10 +241,7 @@ export class TaskWorker {
     | { result: 'failed' }
     | { result: 'completed' }
   > {
-    const findResult: TaskPollResult = await this.poller.waitForReady(
-      this.taskId,
-      signal,
-    );
+    const findResult: TaskPollResult = await listener.waitForReady();
     if (
       findResult.result === 'not-ready-yet' ||
       findResult.result === 'abort'

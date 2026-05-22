@@ -25,19 +25,23 @@ export type TaskPollResult =
   | { result: 'abort' }
   | { result: 'ready'; settings: TaskSettingsV2 };
 
+export interface TaskListener {
+  waitForReady(): Promise<TaskPollResult>;
+}
+
 interface PendingWaiter {
   taskId: string;
   resolve: (result: TaskPollResult) => void;
-  cleanup: () => void;
 }
 
 /**
  * Shared poller that batches per-task readiness checks into a single query.
  *
  * Instead of each TaskWorker independently querying the database every few
- * seconds, workers call `waitForReady` which returns a Promise. The poller
- * runs one query per cycle covering all waiting tasks, and resolves the
- * relevant promises when tasks become ready.
+ * seconds, workers call `setupListener` once at startup, then call
+ * `waitForReady()` on the returned listener in a loop. The poller runs one
+ * query per cycle covering all waiting tasks, and resolves the relevant
+ * promises when tasks become ready.
  */
 export class TaskStatePoller {
   private readonly waiters = new Map<string, PendingWaiter[]>();
@@ -52,47 +56,46 @@ export class TaskStatePoller {
   ) {}
 
   /**
-   * Returns a Promise that resolves when the given task is detected as ready
-   * to run, or when the task disappears from the database (abort), or when
-   * the signal fires.
+   * Register a listener for a task. The returned object's `waitForReady()`
+   * returns a Promise that resolves when the task is detected as ready to
+   * run, when the task disappears from the database (abort), or rejects
+   * when the poller is shut down.
    */
-  waitForReady(taskId: string, signal: AbortSignal): Promise<TaskPollResult> {
-    if (signal.aborted) {
-      return Promise.resolve({ result: 'not-ready-yet' });
-    }
+  setupListener(taskId: string): TaskListener {
+    return {
+      waitForReady: () => {
+        if (this.signal?.aborted) {
+          return Promise.reject(new Error('Poller has been shut down'));
+        }
 
-    return new Promise<TaskPollResult>(resolve => {
-      const waiter: PendingWaiter = {
-        taskId,
-        resolve,
-        cleanup: () => {},
-      };
+        return new Promise<TaskPollResult>((resolve, reject) => {
+          const waiter: PendingWaiter = { taskId, resolve };
 
-      const onAbort = () => {
-        this.removeWaiter(waiter);
-        resolve({ result: 'not-ready-yet' });
-      };
+          let list = this.waiters.get(taskId);
+          if (!list) {
+            list = [];
+            this.waiters.set(taskId, list);
+          }
+          list.push(waiter);
 
-      waiter.cleanup = () => {
-        signal.removeEventListener('abort', onAbort);
-      };
+          this.signal?.addEventListener(
+            'abort',
+            () => {
+              this.removeWaiter(waiter);
+              reject(new Error('Poller has been shut down'));
+            },
+            { once: true },
+          );
 
-      signal.addEventListener('abort', onAbort, { once: true });
-
-      let list = this.waiters.get(taskId);
-      if (!list) {
-        list = [];
-        this.waiters.set(taskId, list);
-      }
-      list.push(waiter);
-
-      this.ensurePolling();
-    });
+          this.ensurePolling();
+        });
+      },
+    };
   }
 
   /**
-   * Start the poller. Must be called before `waitForReady`. The poller only
-   * runs when there are active waiters; it idles otherwise.
+   * Start the poller. Must be called before `setupListener`. The poller
+   * only runs when there are active waiters; it idles otherwise.
    */
   start(signal: AbortSignal): void {
     this.signal = signal;
@@ -191,7 +194,6 @@ export class TaskStatePoller {
     this.waiters.delete(taskId);
 
     for (const waiter of waiters) {
-      waiter.cleanup();
       waiter.resolve(result);
     }
   }

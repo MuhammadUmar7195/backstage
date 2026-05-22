@@ -81,7 +81,7 @@ describe.each(databases.eachSupportedId())(
       const ac = new AbortController();
       const poller = createPoller(ac.signal);
 
-      const promise = poller.waitForReady('task-a', ac.signal);
+      const promise = poller.setupListener('task-a').waitForReady();
       await jest.advanceTimersByTimeAsync(200);
       const result = await promise;
 
@@ -100,10 +100,13 @@ describe.each(databases.eachSupportedId())(
       const poller = createPoller(ac.signal);
 
       let resolved = false;
-      const promise = poller.waitForReady('task-b', ac.signal).then(r => {
-        resolved = true;
-        return r;
-      });
+      const promise = poller
+        .setupListener('task-b')
+        .waitForReady()
+        .then(r => {
+          resolved = true;
+          return r;
+        });
 
       await jest.advanceTimersByTimeAsync(300);
       expect(resolved).toBe(false);
@@ -131,7 +134,7 @@ describe.each(databases.eachSupportedId())(
       const ac = new AbortController();
       const poller = createPoller(ac.signal);
 
-      const promise = poller.waitForReady('task-c', ac.signal);
+      const promise = poller.setupListener('task-c').waitForReady();
 
       await jest.advanceTimersByTimeAsync(50);
       await knex<DbTasksRow>(DB_TASKS_TABLE).where('id', 'task-c').delete();
@@ -142,20 +145,16 @@ describe.each(databases.eachSupportedId())(
       ac.abort();
     });
 
-    it('resolves with not-ready-yet when abort signal fires', async () => {
+    it('rejects when the poller is shut down', async () => {
       await insertTask('task-d', { ready: false });
 
-      const pollerAc = new AbortController();
-      const poller = createPoller(pollerAc.signal);
+      const ac = new AbortController();
+      const poller = createPoller(ac.signal);
 
-      const waiterAc = new AbortController();
-      const promise = poller.waitForReady('task-d', waiterAc.signal);
+      const promise = poller.setupListener('task-d').waitForReady();
 
-      waiterAc.abort();
-      const result = await promise;
-
-      expect(result.result).toBe('not-ready-yet');
-      pollerAc.abort();
+      ac.abort();
+      await expect(promise).rejects.toThrow('Poller has been shut down');
     });
 
     it('batches multiple tasks into a single poll cycle', async () => {
@@ -166,8 +165,8 @@ describe.each(databases.eachSupportedId())(
       const ac = new AbortController();
       const poller = createPoller(ac.signal);
 
-      const p1 = poller.waitForReady('task-e1', ac.signal);
-      const p2 = poller.waitForReady('task-e2', ac.signal);
+      const p1 = poller.setupListener('task-e1').waitForReady();
+      const p2 = poller.setupListener('task-e2').waitForReady();
 
       await jest.advanceTimersByTimeAsync(200);
 
@@ -188,9 +187,12 @@ describe.each(databases.eachSupportedId())(
       const poller = createPoller(ac.signal);
 
       let resolved = false;
-      poller.waitForReady('task-f', ac.signal).then(() => {
-        resolved = true;
-      });
+      poller
+        .setupListener('task-f')
+        .waitForReady()
+        .then(() => {
+          resolved = true;
+        });
 
       await jest.advanceTimersByTimeAsync(500);
       expect(resolved).toBe(false);
