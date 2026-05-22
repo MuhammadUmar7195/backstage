@@ -88,7 +88,7 @@ export class TaskWorker {
           await this.performInitialWait(settings, options.signal);
 
           while (!options.signal.aborted) {
-            const runResult = await this.runOnceViaPoller(options.signal);
+            const runResult = await this.runOnce(options.signal);
             if (runResult.result === 'abort') {
               break;
             }
@@ -226,7 +226,7 @@ export class TaskWorker {
    * Waits for the shared poller to signal readiness instead of querying
    * the database directly.
    */
-  private async runOnceViaPoller(
+  private async runOnce(
     signal: AbortSignal,
   ): Promise<
     | { result: 'not-ready-yet' }

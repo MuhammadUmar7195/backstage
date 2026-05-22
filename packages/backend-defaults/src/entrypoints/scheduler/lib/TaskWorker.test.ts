@@ -35,19 +35,23 @@ describe.each(databases.eachSupportedId())('TaskWorker, %s', databaseId => {
 
   let knex: Awaited<ReturnType<typeof databases.init>>;
   let poller: TaskStatePoller;
+  let pollerAbort: AbortController;
 
   beforeEach(async () => {
     knex = await databases.init(databaseId);
     await migrateBackendTasks(knex);
+    pollerAbort = new AbortController();
     poller = new TaskStatePoller(
       knex,
-      Duration.fromObject({ seconds: 1 }),
+      Duration.fromObject({ milliseconds: 100 }),
       logger,
     );
+    poller.start(pollerAbort.signal);
     jest.resetAllMocks();
   });
 
   afterEach(async () => {
+    pollerAbort.abort();
     await knex?.destroy();
   });
 
