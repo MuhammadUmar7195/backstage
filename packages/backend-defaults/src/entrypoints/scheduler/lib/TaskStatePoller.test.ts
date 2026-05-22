@@ -187,17 +187,19 @@ describe.each(databases.eachSupportedId())(
       const poller = createPoller(ac.signal);
 
       let resolved = false;
-      poller
+      const promise = poller
         .setupListener('task-f')
         .waitForReady()
         .then(() => {
           resolved = true;
-        });
+        })
+        .catch(() => {});
 
       await jest.advanceTimersByTimeAsync(500);
       expect(resolved).toBe(false);
 
       ac.abort();
+      await promise;
     });
   },
 );
