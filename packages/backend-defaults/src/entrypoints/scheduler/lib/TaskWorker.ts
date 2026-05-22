@@ -52,6 +52,7 @@ export class TaskWorker {
   private readonly knex: Knex;
   private readonly logger: LoggerService;
   private readonly workCheckFrequency: Duration;
+  private readonly poller: TaskStatePoller;
 
   constructor(
     taskId: string,
@@ -59,13 +60,14 @@ export class TaskWorker {
     knex: Knex,
     logger: LoggerService,
     workCheckFrequency: Duration = DEFAULT_WORK_CHECK_FREQUENCY,
-    private readonly poller?: TaskStatePoller,
+    poller: TaskStatePoller,
   ) {
     this.taskId = taskId;
     this.fn = fn;
     this.knex = knex;
     this.logger = logger;
     this.workCheckFrequency = workCheckFrequency;
+    this.poller = poller;
   }
 
   async start(settings: TaskSettingsV2, options: { signal: AbortSignal }) {
@@ -79,15 +81,6 @@ export class TaskWorker {
       `Registered scheduled task: ${this.taskId}, ${JSON.stringify(settings)}`,
     );
 
-    let workCheckFrequency = this.workCheckFrequency;
-    const isDuration = settings?.cadence.startsWith('P');
-    if (isDuration) {
-      const cadence = Duration.fromISO(settings.cadence);
-      if (cadence < workCheckFrequency) {
-        workCheckFrequency = cadence;
-      }
-    }
-
     (async () => {
       let attemptNum = 1;
       for (;;) {
@@ -95,14 +88,9 @@ export class TaskWorker {
           await this.performInitialWait(settings, options.signal);
 
           while (!options.signal.aborted) {
-            const runResult = this.poller
-              ? await this.runOnceViaPoller(options.signal)
-              : await this.runOnce(options.signal);
+            const runResult = await this.runOnceViaPoller(options.signal);
             if (runResult.result === 'abort') {
               break;
-            }
-            if (!this.poller) {
-              await sleep(workCheckFrequency, options.signal);
             }
           }
 
@@ -235,30 +223,8 @@ export class TaskWorker {
 
   /**
    * Makes a single attempt at running the task to completion, if ready.
-   * Uses direct DB query to check readiness.
-   */
-  private async runOnce(
-    signal: AbortSignal,
-  ): Promise<
-    | { result: 'not-ready-yet' }
-    | { result: 'abort' }
-    | { result: 'failed' }
-    | { result: 'completed' }
-  > {
-    const findResult = await this.findReadyTask();
-    if (
-      findResult.result === 'not-ready-yet' ||
-      findResult.result === 'abort'
-    ) {
-      return findResult;
-    }
-    return this.claimAndRun(findResult.settings, signal);
-  }
-
-  /**
-   * Like runOnce, but waits for the shared poller to signal readiness instead
-   * of querying the database directly. The poller's poll interval replaces
-   * the caller's sleep.
+   * Waits for the shared poller to signal readiness instead of querying
+   * the database directly.
    */
   private async runOnceViaPoller(
     signal: AbortSignal,
@@ -268,7 +234,7 @@ export class TaskWorker {
     | { result: 'failed' }
     | { result: 'completed' }
   > {
-    const findResult: TaskPollResult = await this.poller!.waitForReady(
+    const findResult: TaskPollResult = await this.poller.waitForReady(
       this.taskId,
       signal,
     );

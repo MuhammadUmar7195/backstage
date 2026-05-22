@@ -24,9 +24,7 @@ import { Knex } from 'knex';
 
 jest.setTimeout(60_000);
 
-const databases = TestDatabases.create({
-  ids: ['POSTGRES_18', 'POSTGRES_14', 'SQLITE_3'],
-});
+const databases = TestDatabases.create();
 
 describe.each(databases.eachSupportedId())(
   'TaskStatePoller, %p',
