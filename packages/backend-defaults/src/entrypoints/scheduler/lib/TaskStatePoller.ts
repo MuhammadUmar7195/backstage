@@ -44,16 +44,19 @@ interface PendingWaiter {
  * promises when tasks become ready.
  */
 export class TaskStatePoller {
-  private readonly waiters = new Map<string, PendingWaiter[]>();
-  private pollTimer: ReturnType<typeof setTimeout> | undefined;
-  private pollCycleRunning = false;
-  private signal?: AbortSignal;
+  readonly #knex: Knex;
+  readonly #pollInterval: Duration;
+  readonly #logger: LoggerService;
+  readonly #waiters = new Map<string, PendingWaiter[]>();
+  #pollTimer: ReturnType<typeof setTimeout> | undefined;
+  #pollCycleRunning = false;
+  #signal?: AbortSignal;
 
-  constructor(
-    private readonly knex: Knex,
-    private readonly pollInterval: Duration,
-    private readonly logger: LoggerService,
-  ) {}
+  constructor(knex: Knex, pollInterval: Duration, logger: LoggerService) {
+    this.#knex = knex;
+    this.#pollInterval = pollInterval;
+    this.#logger = logger;
+  }
 
   /**
    * Register a listener for a task. The returned object's `waitForReady()`
@@ -64,30 +67,30 @@ export class TaskStatePoller {
   setupListener(taskId: string): TaskListener {
     return {
       waitForReady: () => {
-        if (this.signal?.aborted) {
+        if (this.#signal?.aborted) {
           return Promise.reject(new Error('Poller has been shut down'));
         }
 
         return new Promise<TaskPollResult>((resolve, reject) => {
           const waiter: PendingWaiter = { taskId, resolve };
 
-          let list = this.waiters.get(taskId);
+          let list = this.#waiters.get(taskId);
           if (!list) {
             list = [];
-            this.waiters.set(taskId, list);
+            this.#waiters.set(taskId, list);
           }
           list.push(waiter);
 
-          this.signal?.addEventListener(
+          this.#signal?.addEventListener(
             'abort',
             () => {
-              this.removeWaiter(waiter);
+              this.#removeWaiter(waiter);
               reject(new Error('Poller has been shut down'));
             },
             { once: true },
           );
 
-          this.ensurePolling();
+          this.#ensurePolling();
         });
       },
     };
@@ -98,59 +101,59 @@ export class TaskStatePoller {
    * only runs when there are active waiters; it idles otherwise.
    */
   start(signal: AbortSignal): void {
-    this.signal = signal;
+    this.#signal = signal;
     signal.addEventListener('abort', () => {
-      if (this.pollTimer) {
-        clearTimeout(this.pollTimer);
-        this.pollTimer = undefined;
+      if (this.#pollTimer) {
+        clearTimeout(this.#pollTimer);
+        this.#pollTimer = undefined;
       }
     });
   }
 
-  private ensurePolling(): void {
-    if (this.pollCycleRunning || this.pollTimer || this.signal?.aborted) {
+  #ensurePolling(): void {
+    if (this.#pollCycleRunning || this.#pollTimer || this.#signal?.aborted) {
       return;
     }
     // Use a microtask for the initial poll so it fires immediately even
     // under fake timers (setTimeout(fn, 0) requires timer advancement).
-    this.pollCycleRunning = true;
-    Promise.resolve().then(() => this.runPollCycle());
+    this.#pollCycleRunning = true;
+    Promise.resolve().then(() => this.#runPollCycle());
   }
 
-  private async runPollCycle(): Promise<void> {
+  async #runPollCycle(): Promise<void> {
     try {
-      await this.poll();
+      await this.#poll();
     } catch (e) {
-      this.logger.warn(`Task state poll failed: ${e}`);
+      this.#logger.warn(`Task state poll failed: ${e}`);
     }
-    this.pollCycleRunning = false;
+    this.#pollCycleRunning = false;
 
-    if (this.waiters.size > 0 && !this.signal?.aborted) {
-      this.pollTimer = setTimeout(() => {
-        this.pollTimer = undefined;
-        this.pollCycleRunning = true;
-        this.runPollCycle();
-      }, this.pollInterval.as('milliseconds'));
+    if (this.#waiters.size > 0 && !this.#signal?.aborted) {
+      this.#pollTimer = setTimeout(() => {
+        this.#pollTimer = undefined;
+        this.#pollCycleRunning = true;
+        this.#runPollCycle();
+      }, this.#pollInterval.as('milliseconds'));
     }
   }
 
-  private async poll(): Promise<void> {
-    const taskIds = [...this.waiters.keys()];
+  async #poll(): Promise<void> {
+    const taskIds = [...this.#waiters.keys()];
     if (taskIds.length === 0) {
       return;
     }
 
-    const rows = await this.knex<DbTasksRow>(DB_TASKS_TABLE)
+    const rows = await this.#knex<DbTasksRow>(DB_TASKS_TABLE)
       .whereIn('id', taskIds)
       .select({
         id: 'id',
         settingsJson: 'settings_json',
-        ready: this.knex.raw(
+        ready: this.#knex.raw(
           `CASE
             WHEN next_run_start_at <= ? AND current_run_ticket IS NULL THEN TRUE
             ELSE FALSE
           END`,
-          [this.knex.fn.now()],
+          [this.#knex.fn.now()],
         ),
       });
 
@@ -163,7 +166,7 @@ export class TaskStatePoller {
         continue;
       }
 
-      const waiters = this.waiters.get(row.id);
+      const waiters = this.#waiters.get(row.id);
       if (!waiters || waiters.length === 0) {
         continue;
       }
@@ -172,34 +175,34 @@ export class TaskStatePoller {
       try {
         settings = taskSettingsV2Schema.parse(JSON.parse(row.settingsJson));
       } catch {
-        this.resolveAll(row.id, { result: 'abort' });
+        this.#resolveAll(row.id, { result: 'abort' });
         continue;
       }
 
-      this.resolveAll(row.id, { result: 'ready', settings });
+      this.#resolveAll(row.id, { result: 'ready', settings });
     }
 
     for (const taskId of taskIds) {
       if (!foundIds.has(taskId)) {
-        this.resolveAll(taskId, { result: 'abort' });
+        this.#resolveAll(taskId, { result: 'abort' });
       }
     }
   }
 
-  private resolveAll(taskId: string, result: TaskPollResult): void {
-    const waiters = this.waiters.get(taskId);
+  #resolveAll(taskId: string, result: TaskPollResult): void {
+    const waiters = this.#waiters.get(taskId);
     if (!waiters) {
       return;
     }
-    this.waiters.delete(taskId);
+    this.#waiters.delete(taskId);
 
     for (const waiter of waiters) {
       waiter.resolve(result);
     }
   }
 
-  private removeWaiter(waiter: PendingWaiter): void {
-    const list = this.waiters.get(waiter.taskId);
+  #removeWaiter(waiter: PendingWaiter): void {
+    const list = this.#waiters.get(waiter.taskId);
     if (!list) {
       return;
     }
@@ -208,7 +211,7 @@ export class TaskStatePoller {
       list.splice(idx, 1);
     }
     if (list.length === 0) {
-      this.waiters.delete(waiter.taskId);
+      this.#waiters.delete(waiter.taskId);
     }
   }
 }
