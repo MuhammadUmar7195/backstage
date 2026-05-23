@@ -22,7 +22,6 @@ import { DB_TASKS_TABLE, DbTasksRow } from '../database/tables';
 import { TaskSettingsV2, taskSettingsV2Schema } from './types';
 
 export type TaskPollResult =
-  | { result: 'not-ready-yet' }
   | { result: 'abort' }
   | { result: 'ready'; settings: TaskSettingsV2 };
 

@@ -34,11 +34,7 @@ import {
   serializeError,
 } from './util';
 import { SchedulerServiceTaskFunction } from '@backstage/backend-plugin-api';
-import {
-  TaskListener,
-  TaskPollResult,
-  TaskStatePoller,
-} from './TaskStatePoller';
+import { TaskListener, TaskStatePoller } from './TaskStatePoller';
 
 const DEFAULT_WORK_CHECK_FREQUENCY = Duration.fromObject({ seconds: 5 });
 
@@ -236,16 +232,13 @@ export class TaskWorker {
     listener: TaskListener,
     signal: AbortSignal,
   ): Promise<
-    | { result: 'not-ready-yet' }
     | { result: 'abort' }
+    | { result: 'claim-lost' }
     | { result: 'failed' }
     | { result: 'completed' }
   > {
-    const findResult: TaskPollResult = await listener.waitForReady();
-    if (
-      findResult.result === 'not-ready-yet' ||
-      findResult.result === 'abort'
-    ) {
+    const findResult = await listener.waitForReady();
+    if (findResult.result === 'abort') {
       return findResult;
     }
     return this.claimAndRun(findResult.settings, signal);
@@ -255,13 +248,13 @@ export class TaskWorker {
     taskSettings: TaskSettingsV2,
     signal: AbortSignal,
   ): Promise<
-    { result: 'not-ready-yet' } | { result: 'failed' } | { result: 'completed' }
+    { result: 'claim-lost' } | { result: 'failed' } | { result: 'completed' }
   > {
     const ticket = uuid();
 
     const claimed = await this.tryClaimTask(ticket, taskSettings);
     if (!claimed) {
-      return { result: 'not-ready-yet' };
+      return { result: 'claim-lost' };
     }
 
     // Abort the task execution either if the worker is stopped, or if the
