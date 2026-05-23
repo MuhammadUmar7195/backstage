@@ -159,7 +159,6 @@ export class PluginTaskSchedulerImpl implements SchedulerService {
         this.instrumentedFunction(task, scope),
         knex,
         this.logger.child({ task: task.id }),
-        undefined,
         this.poller,
       );
       await worker.start(settings, { signal: abortController.signal });

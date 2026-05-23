@@ -36,7 +36,7 @@ import {
 import { SchedulerServiceTaskFunction } from '@backstage/backend-plugin-api';
 import { TaskListener, TaskStatePoller } from './TaskStatePoller';
 
-const DEFAULT_WORK_CHECK_FREQUENCY = Duration.fromObject({ seconds: 5 });
+const LIVENESS_CHECK_INTERVAL = Duration.fromObject({ seconds: 5 });
 
 /**
  * Implements tasks that run across worker hosts, with collaborative locking.
@@ -51,7 +51,6 @@ export class TaskWorker {
   private readonly fn: SchedulerServiceTaskFunction;
   private readonly knex: Knex;
   private readonly logger: LoggerService;
-  private readonly workCheckFrequency: Duration;
   private readonly poller: TaskStatePoller;
 
   constructor(
@@ -59,14 +58,12 @@ export class TaskWorker {
     fn: SchedulerServiceTaskFunction,
     knex: Knex,
     logger: LoggerService,
-    workCheckFrequency: Duration = DEFAULT_WORK_CHECK_FREQUENCY,
     poller: TaskStatePoller,
   ) {
     this.taskId = taskId;
     this.fn = fn;
     this.knex = knex;
     this.logger = logger;
-    this.workCheckFrequency = workCheckFrequency;
     this.poller = poller;
   }
 
@@ -271,7 +268,7 @@ export class TaskWorker {
         if (!taskAbortController.signal.aborted) {
           scheduleLivenessCheck();
         }
-      }, this.workCheckFrequency.as('milliseconds'));
+      }, LIVENESS_CHECK_INTERVAL.as('milliseconds'));
     };
     scheduleLivenessCheck();
 
