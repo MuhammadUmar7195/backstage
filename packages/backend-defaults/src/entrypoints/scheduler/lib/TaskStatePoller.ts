@@ -15,6 +15,7 @@
  */
 
 import { LoggerService } from '@backstage/backend-plugin-api';
+import { createDeferred, DeferredPromise } from '@backstage/types';
 import { Knex } from 'knex';
 import { Duration } from 'luxon';
 import { DB_TASKS_TABLE, DbTasksRow } from '../database/tables';
@@ -31,7 +32,7 @@ export interface TaskListener {
 
 interface PendingWaiter {
   taskId: string;
-  resolve: (result: TaskPollResult) => void;
+  deferred: DeferredPromise<TaskPollResult>;
 }
 
 /**
@@ -75,27 +76,28 @@ export class TaskStatePoller {
           return Promise.reject(new Error('Poller has been shut down'));
         }
 
-        return new Promise<TaskPollResult>((resolve, reject) => {
-          const waiter: PendingWaiter = { taskId, resolve };
+        const deferred = createDeferred<TaskPollResult>();
+        const waiter: PendingWaiter = { taskId, deferred };
 
-          let list = this.#waiters.get(taskId);
-          if (!list) {
-            list = [];
-            this.#waiters.set(taskId, list);
-          }
-          list.push(waiter);
+        let list = this.#waiters.get(taskId);
+        if (!list) {
+          list = [];
+          this.#waiters.set(taskId, list);
+        }
+        list.push(waiter);
 
-          this.#signal?.addEventListener(
-            'abort',
-            () => {
-              this.#removeWaiter(waiter);
-              reject(new Error('Poller has been shut down'));
-            },
-            { once: true },
-          );
+        this.#signal?.addEventListener(
+          'abort',
+          () => {
+            this.#removeWaiter(waiter);
+            deferred.reject(new Error('Poller has been shut down'));
+          },
+          { once: true },
+        );
 
-          this.#ensurePolling();
-        });
+        this.#ensurePolling();
+
+        return deferred;
       },
     };
   }
@@ -118,8 +120,6 @@ export class TaskStatePoller {
     if (this.#pollCycleRunning || this.#pollTimer || this.#signal?.aborted) {
       return;
     }
-    // Use a microtask for the initial poll so it fires immediately even
-    // under fake timers (setTimeout(fn, 0) requires timer advancement).
     this.#pollCycleRunning = true;
     Promise.resolve().then(() => this.#runPollCycle());
   }
@@ -201,7 +201,7 @@ export class TaskStatePoller {
     this.#waiters.delete(taskId);
 
     for (const waiter of waiters) {
-      waiter.resolve(result);
+      waiter.deferred.resolve(result);
     }
   }
 
