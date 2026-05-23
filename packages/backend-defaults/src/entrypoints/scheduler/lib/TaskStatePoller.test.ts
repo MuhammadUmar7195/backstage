@@ -66,11 +66,11 @@ describe.each(databases.eachSupportedId())(
     }
 
     function createPoller(signal: AbortSignal) {
-      const poller = new TaskStatePoller(
+      const poller = new TaskStatePoller({
         knex,
-        Duration.fromMillis(100),
-        mockServices.logger.mock(),
-      );
+        pollInterval: Duration.fromMillis(100),
+        logger: mockServices.logger.mock(),
+      });
       poller.start(signal);
       return poller;
     }

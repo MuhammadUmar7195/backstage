@@ -41,11 +41,11 @@ describe.each(databases.eachSupportedId())('TaskWorker, %s', databaseId => {
     knex = await databases.init(databaseId);
     await migrateBackendTasks(knex);
     pollerAbort = new AbortController();
-    poller = new TaskStatePoller(
+    poller = new TaskStatePoller({
       knex,
-      Duration.fromObject({ milliseconds: 100 }),
+      pollInterval: Duration.fromObject({ milliseconds: 100 }),
       logger,
-    );
+    });
     poller.start(pollerAbort.signal);
     jest.resetAllMocks();
   });

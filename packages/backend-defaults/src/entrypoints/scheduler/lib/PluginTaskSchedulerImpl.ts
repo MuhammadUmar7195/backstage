@@ -147,11 +147,11 @@ export class PluginTaskSchedulerImpl implements SchedulerService {
       if (!this.poller) {
         this.pollerSignal = new AbortController();
         this.shutdownInitiated.then(() => this.pollerSignal!.abort());
-        this.poller = new TaskStatePoller(
+        this.poller = new TaskStatePoller({
           knex,
-          Duration.fromObject({ seconds: 5 }),
-          this.logger.child({ type: 'taskStatePoller' }),
-        );
+          pollInterval: Duration.fromObject({ seconds: 5 }),
+          logger: this.logger.child({ type: 'taskStatePoller' }),
+        });
         this.poller.start(this.pollerSignal.signal);
       }
 

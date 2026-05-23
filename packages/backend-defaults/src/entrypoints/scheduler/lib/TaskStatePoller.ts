@@ -52,10 +52,14 @@ export class TaskStatePoller {
   #pollCycleRunning = false;
   #signal?: AbortSignal;
 
-  constructor(knex: Knex, pollInterval: Duration, logger: LoggerService) {
-    this.#knex = knex;
-    this.#pollInterval = pollInterval;
-    this.#logger = logger;
+  constructor(options: {
+    knex: Knex;
+    pollInterval: Duration;
+    logger: LoggerService;
+  }) {
+    this.#knex = options.knex;
+    this.#pollInterval = options.pollInterval;
+    this.#logger = options.logger;
   }
 
   /**
