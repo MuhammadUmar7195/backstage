@@ -61,7 +61,6 @@ export class PluginTaskSchedulerImpl implements SchedulerService {
   private readonly databaseFactory: () => Promise<Knex>;
   private readonly logger: LoggerService;
   private poller?: TaskStatePoller;
-  private pollerSignal?: AbortController;
 
   constructor(
     pluginId: string,
@@ -145,14 +144,14 @@ export class PluginTaskSchedulerImpl implements SchedulerService {
       const knex = await this.databaseFactory();
 
       if (!this.poller) {
-        this.pollerSignal = new AbortController();
-        this.shutdownInitiated.then(() => this.pollerSignal!.abort());
+        const pollerAbort = new AbortController();
+        this.shutdownInitiated.then(() => pollerAbort.abort());
         this.poller = new TaskStatePoller({
           knex,
           pollInterval: Duration.fromObject({ seconds: 5 }),
           logger: this.logger.child({ type: 'taskStatePoller' }),
         });
-        this.poller.start(this.pollerSignal.signal);
+        this.poller.start(pollerAbort.signal);
       }
 
       const worker = new TaskWorker(
