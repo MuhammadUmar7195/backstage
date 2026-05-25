@@ -174,14 +174,15 @@ describe('microsoftAuthenticator', () => {
       );
 
       const profile = authenticateResponse.fullProfile;
-      expect(profile.displayName).toBe('Conrad');
-      expect(profile.emails).toStrictEqual([
+      expect(profile).toBeDefined();
+      expect(profile!.displayName).toBe('Conrad');
+      expect(profile!.emails).toStrictEqual([
         {
           type: 'work',
           value: 'conrad@example.com',
         },
       ]);
-      expect(profile.photos).toStrictEqual([{ value: photo }]);
+      expect(profile!.photos).toStrictEqual([{ value: photo }]);
     });
 
     it('returns access token for non-microsoft graph scope', async () => {
@@ -223,14 +224,15 @@ describe('microsoftAuthenticator', () => {
       );
 
       const profile = authenticateResponse.fullProfile;
-      expect(profile.displayName).toBe('Conrad');
-      expect(profile.emails).toStrictEqual([
+      expect(profile).toBeDefined();
+      expect(profile!.displayName).toBe('Conrad');
+      expect(profile!.emails).toStrictEqual([
         {
           type: 'work',
           value: 'conrad@example.com',
         },
       ]);
-      expect(profile.photos).toBeUndefined();
+      expect(profile!.photos).toBeUndefined();
     });
   });
 
@@ -252,14 +254,15 @@ describe('microsoftAuthenticator', () => {
       );
 
       const profile = refreshResponse.fullProfile;
-      expect(profile.displayName).toBe('Conrad');
-      expect(profile.emails).toStrictEqual([
+      expect(profile).toBeDefined();
+      expect(profile!.displayName).toBe('Conrad');
+      expect(profile!.emails).toStrictEqual([
         {
           type: 'work',
           value: 'conrad@example.com',
         },
       ]);
-      expect(profile.photos).toStrictEqual([{ value: photo }]);
+      expect(profile!.photos).toStrictEqual([{ value: photo }]);
     });
 
     it('returns access token for non-microsoft graph scope', async () => {
