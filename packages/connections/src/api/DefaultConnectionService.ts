@@ -35,6 +35,7 @@ import {
 import { z } from 'zod/v4';
 import { getLegacyIntegrations } from '../system/getLegacyIntegrations';
 import { combineConnectionSources } from '../system/combineConnectionSources';
+import { parseConnectionTypeConfig } from '../system/createConnectionType';
 
 function describeError(error: unknown): string {
   const e = toError(error);
@@ -240,7 +241,8 @@ export class DefaultConnectionsService {
       throw new InputError(`Unrecognised connection type ${connection.type}`);
     }
 
-    return getConnectionType(connection.type).schema.parse(
+    return parseConnectionTypeConfig(
+      getConnectionType(connection.type),
       connection,
     ) as RootConnection;
   }

@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 import type { z } from 'zod/v4';
+import type { JsonObject } from '@backstage/types';
 import type { ConnectionTypeKey, LookupConnectionType } from '../definitions';
 
 // Field names the framework owns at the connection level. Connection-type
@@ -60,7 +61,7 @@ export type ConnectionType<
   title: string;
   configSchema: TConfigSchema;
   authMethods: TAuthMethods;
-  schema: z.ZodType;
+  schema: JsonObject;
   // Method shorthand keeps parameter checking bivariant so a narrow
   // ConnectionType (e.g. github) is still assignable to ConnectionType<string>.
   // TODO a default match auth method so this is no longer optional

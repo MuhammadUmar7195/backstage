@@ -7,6 +7,7 @@ import { $strip } from 'zod/v4/core';
 import type { BackendModuleRegistrationPoints } from '@backstage/backend-plugin-api';
 import type { BackendPluginRegistrationPoints } from '@backstage/backend-plugin-api';
 import type { ConnectionRegistration } from '@backstage/backend-plugin-api/alpha';
+import { JsonObject } from '@backstage/types';
 import { LoggerService } from '@backstage/backend-plugin-api';
 import { RootConfigService } from '@backstage/backend-plugin-api';
 import { ServiceFactory } from '@backstage/backend-plugin-api';
@@ -100,7 +101,7 @@ export type ConnectionType<
   title: string;
   configSchema: TConfigSchema;
   authMethods: TAuthMethods;
-  schema: z.ZodType;
+  schema: JsonObject;
   matchAuth?(
     authMethods: ConnectionAuthValue<TAuthMethods[number]>[],
     query: string,

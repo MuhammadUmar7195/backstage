@@ -14,7 +14,10 @@
  * limitations under the License.
  */
 import { z } from 'zod/v4';
-import { createConnectionType } from './createConnectionType';
+import {
+  createConnectionType,
+  parseConnectionTypeConfig,
+} from './createConnectionType';
 
 describe('createConnectionType', () => {
   it('builds a single-auth-method connection type whose schema validates correctly', () => {
@@ -32,9 +35,20 @@ describe('createConnectionType', () => {
 
     expect(SingleAuthType.type).toBe('single');
     expect(SingleAuthType.authMethods).toEqual([tokenAuth]);
+    expect(SingleAuthType.schema).toMatchObject({
+      type: 'object',
+      properties: {
+        type: { const: 'single' },
+        host: { type: 'string' },
+        auth: { type: 'array' },
+      },
+      required: ['host', 'type', 'auth'],
+      additionalProperties: false,
+    });
+    expect(SingleAuthType.schema).not.toHaveProperty('parse');
 
     expect(() =>
-      SingleAuthType.schema.parse({
+      parseConnectionTypeConfig(SingleAuthType, {
         type: 'single',
         host: 'example.com',
         auth: [{ method: 'token', token: 'abc' }],
@@ -43,7 +57,7 @@ describe('createConnectionType', () => {
 
     // Wrong literal type should fail.
     expect(() =>
-      SingleAuthType.schema.parse({
+      parseConnectionTypeConfig(SingleAuthType, {
         type: 'other',
         host: 'example.com',
         auth: [{ method: 'token', token: 'abc' }],
@@ -52,7 +66,7 @@ describe('createConnectionType', () => {
 
     // Missing required config field should fail.
     expect(() =>
-      SingleAuthType.schema.parse({
+      parseConnectionTypeConfig(SingleAuthType, {
         type: 'single',
         auth: [{ method: 'token', token: 'abc' }],
       }),
@@ -60,7 +74,7 @@ describe('createConnectionType', () => {
 
     // Auth method not in the list should fail.
     expect(() =>
-      SingleAuthType.schema.parse({
+      parseConnectionTypeConfig(SingleAuthType, {
         type: 'single',
         host: 'example.com',
         auth: [{ method: 'other', token: 'abc' }],
@@ -69,7 +83,7 @@ describe('createConnectionType', () => {
 
     // Unknown top-level fields should fail.
     expect(() =>
-      SingleAuthType.schema.parse({
+      parseConnectionTypeConfig(SingleAuthType, {
         type: 'single',
         host: 'example.com',
         host2: 'example.com',
@@ -79,7 +93,7 @@ describe('createConnectionType', () => {
 
     // Optional title field should be accepted.
     expect(
-      SingleAuthType.schema.parse({
+      parseConnectionTypeConfig(SingleAuthType, {
         type: 'single',
         host: 'example.com',
         title: 'My Production Instance',
@@ -89,7 +103,7 @@ describe('createConnectionType', () => {
 
     // Omitting title should still work.
     expect(
-      SingleAuthType.schema.parse({
+      parseConnectionTypeConfig(SingleAuthType, {
         type: 'single',
         host: 'example.com',
         auth: [{ method: 'token', token: 'abc' }],
@@ -116,7 +130,7 @@ describe('createConnectionType', () => {
 
     // Both auth methods accepted in the same connection.
     expect(() =>
-      MultiAuthType.schema.parse({
+      parseConnectionTypeConfig(MultiAuthType, {
         type: 'multi',
         host: 'example.com',
         auth: [
@@ -128,7 +142,7 @@ describe('createConnectionType', () => {
 
     // Auth config must match the discriminator.
     expect(() =>
-      MultiAuthType.schema.parse({
+      parseConnectionTypeConfig(MultiAuthType, {
         type: 'multi',
         host: 'example.com',
         auth: [{ method: 'app', token: 'abc' }],
@@ -137,7 +151,7 @@ describe('createConnectionType', () => {
 
     // Unknown discriminator should fail.
     expect(() =>
-      MultiAuthType.schema.parse({
+      parseConnectionTypeConfig(MultiAuthType, {
         type: 'multi',
         host: 'example.com',
         auth: [{ method: 'oauth' }],
@@ -146,7 +160,7 @@ describe('createConnectionType', () => {
 
     // Empty auth array is allowed by the array schema.
     expect(() =>
-      MultiAuthType.schema.parse({
+      parseConnectionTypeConfig(MultiAuthType, {
         type: 'multi',
         host: 'example.com',
         auth: [],
