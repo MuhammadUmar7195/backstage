@@ -17,9 +17,8 @@
 
 import express from 'express';
 import Router from 'express-promise-router';
-import { connectionTypes, connectionsServiceRef } from '@backstage/connections';
-import { HttpAuthService, LoggerService } from '@backstage/backend-plugin-api';
-import { ConnectionTypeKey } from '@backstage/connections';
+import { connectionTypes, connectionsServiceRef, type ConnectionTypeKey } from '@backstage/connections';
+import { type HttpAuthService, type LoggerService } from '@backstage/backend-plugin-api';
 import { NotFoundError } from '@backstage/errors';
 
 function isConnectionTypeKey(type: string): type is ConnectionTypeKey {
