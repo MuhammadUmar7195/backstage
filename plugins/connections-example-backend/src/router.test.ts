@@ -18,6 +18,7 @@ import { mockServices } from '@backstage/backend-test-utils';
 import express from 'express';
 import { EventEmitter } from 'node:events';
 import { createRequest, createResponse } from 'node-mocks-http';
+import type { RequestMethod } from 'node-mocks-http';
 import { createRouter } from './router';
 
 describe('createRouter', () => {
@@ -34,14 +35,14 @@ describe('createRouter', () => {
     app = express().use(router);
   });
 
-  async function request(method: string, url: string) {
+  async function request(method: RequestMethod, url: string) {
     const req = createRequest({ method, url });
     const res = createResponse({ eventEmitter: EventEmitter });
     const done = new Promise<void>(resolve => {
       res.on('end', resolve);
     });
 
-    app.handle(req, res);
+    app(req, res);
     await done;
 
     return {
