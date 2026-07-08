@@ -16,9 +16,7 @@
 
 import { mockServices } from '@backstage/backend-test-utils';
 import express from 'express';
-import { EventEmitter } from 'node:events';
-import { createRequest, createResponse } from 'node-mocks-http';
-import type { RequestMethod } from 'node-mocks-http';
+import request from 'supertest';
 import { createRouter } from './router';
 
 describe('createRouter', () => {
@@ -35,25 +33,9 @@ describe('createRouter', () => {
     app = express().use(router);
   });
 
-  async function request(method: RequestMethod, url: string) {
-    const req = createRequest({ method, url });
-    const res = createResponse({ eventEmitter: EventEmitter });
-    const done = new Promise<void>(resolve => {
-      res.on('end', resolve);
-    });
-
-    app(req, res);
-    await done;
-
-    return {
-      status: res.statusCode,
-      body: res._getJSONData(),
-    };
-  }
-
   describe('GET /schema/:type', () => {
     it('returns the JSON schema for a connection type', async () => {
-      const response = await request('GET', '/schema/github');
+      const response = await request(app).get('/schema/github');
 
       expect(response.status).toBe(200);
       expect(response.body).toMatchObject({
@@ -77,7 +59,7 @@ describe('createRouter', () => {
     });
 
     it('returns 404 for an unknown connection type', async () => {
-      const response = await request('GET', '/schema/unknown');
+      const response = await request(app).get('/schema/unknown');
 
       expect(response.status).toBe(404);
       expect(response.body).toBe('Cannot find connection type');

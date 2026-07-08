@@ -22,6 +22,10 @@ import { HttpAuthService, LoggerService } from '@backstage/backend-plugin-api';
 import { ConnectionTypeKey } from '@backstage/connections';
 import { NotFoundError } from '@backstage/errors';
 
+function isConnectionTypeKey(type: string): type is ConnectionTypeKey {
+  return Object.prototype.hasOwnProperty.call(connectionTypes, type);
+}
+
 export async function createRouter({
   connections,
 }: {
@@ -34,12 +38,12 @@ export async function createRouter({
 
   router.get('/schema/:type', async (req, res) => {
     const type = req.params.type;
-    if (!Object.prototype.hasOwnProperty.call(connectionTypes, type)) {
+    if (!isConnectionTypeKey(type)) {
       res.status(404).json('Cannot find connection type');
       return;
     }
 
-    res.status(200).json(connectionTypes[type as ConnectionTypeKey].schema);
+    res.status(200).json(connectionTypes[type].schema);
   });
 
   router.get('/find', async (req, res) => {
