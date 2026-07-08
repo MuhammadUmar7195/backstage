@@ -52,9 +52,12 @@ describe('createRouter', () => {
             type: 'array',
           },
         },
-        required: ['host', 'type', 'auth'],
         additionalProperties: false,
       });
+      expect(response.body.required).toEqual(
+        expect.arrayContaining(['host', 'type', 'auth']),
+      );
+      expect(response.body.required).toHaveLength(3);
       expect(response.body).not.toHaveProperty('parse');
     });
 

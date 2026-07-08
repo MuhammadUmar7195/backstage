@@ -42,9 +42,12 @@ describe('createConnectionType', () => {
         host: { type: 'string' },
         auth: { type: 'array' },
       },
-      required: ['host', 'type', 'auth'],
       additionalProperties: false,
     });
+    expect(SingleAuthType.schema.required).toEqual(
+      expect.arrayContaining(['host', 'type', 'auth']),
+    );
+    expect(SingleAuthType.schema.required).toHaveLength(3);
     expect(SingleAuthType.schema).not.toHaveProperty('parse');
 
     expect(() =>
