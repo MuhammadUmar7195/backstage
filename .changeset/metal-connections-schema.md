@@ -2,4 +2,4 @@
 '@backstage/connections': minor
 ---
 
-Changed connection type `schema` values to expose generated JSON Schema objects instead of Zod schemas.
+Changed connection types to expose generated JSON Schema objects via `schema` instead of Zod schemas, and removed the Zod-backed `configSchema` values from the public connection type shape.

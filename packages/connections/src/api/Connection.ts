@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import type { z } from 'zod/v4';
 import type { ConnectionAuthValue, ConnectionType } from './ConnectionType';
 import {
   ConnectionMatch,
@@ -42,7 +41,9 @@ export type Connection<
   auth: string extends TAuthMethod
     ? AuthValue<T>[]
     : Extract<AuthValue<T>, { method: TAuthMethod }>;
-} & z.infer<LookupConnectionType<T>['configSchema']>;
+} & (LookupConnectionType<T> extends ConnectionType<any, infer TConfig, any>
+  ? TConfig
+  : never);
 
 // Discriminated union of every known connection type, suitable for
 // `switch (c.type)` narrowing.

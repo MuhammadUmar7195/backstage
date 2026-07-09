@@ -22,6 +22,25 @@ import type {
   WithoutReservedFields,
 } from '../api/ConnectionType';
 
+type ConnectionAuthMethodSchema<
+  TMethod extends string = string,
+  TConfigSchema extends z.ZodObject = z.ZodObject,
+> = {
+  method: TMethod;
+  configSchema: TConfigSchema;
+};
+
+type ConnectionAuthMethodsFromSchemas<
+  TAuthMethods extends readonly ConnectionAuthMethodSchema[],
+> = {
+  readonly [I in keyof TAuthMethods]: TAuthMethods[I] extends ConnectionAuthMethodSchema<
+    infer TMethod,
+    infer TConfigSchema
+  >
+    ? ConnectionAuthMethod<TMethod, z.infer<TConfigSchema>>
+    : never;
+};
+
 const matchSchema = z
   .object({ plugins: z.array(z.string()) })
   .strict()
@@ -49,7 +68,7 @@ export function parseConnectionTypeConfig(
 export function createConnectionType<
   TType extends string,
   TConfigSchema extends z.ZodObject,
-  const TAuthMethods extends readonly ConnectionAuthMethod[],
+  const TAuthMethods extends readonly ConnectionAuthMethodSchema[],
 >({
   configSchema,
   type,
@@ -61,8 +80,12 @@ export function createConnectionType<
   title: string;
   configSchema: WithoutReservedFields<TConfigSchema>;
   authMethods: TAuthMethods;
-  matchAuth?: MatchAuth<TAuthMethods>;
-}): ConnectionType<TType, TConfigSchema, TAuthMethods> {
+  matchAuth?: MatchAuth<ConnectionAuthMethodsFromSchemas<TAuthMethods>>;
+}): ConnectionType<
+  TType,
+  z.infer<TConfigSchema>,
+  ConnectionAuthMethodsFromSchemas<TAuthMethods>
+> {
   const authOptions = authMethods.map(am =>
     am.configSchema
       .extend({
@@ -90,13 +113,16 @@ export function createConnectionType<
   const connectionType = {
     type,
     title,
-    configSchema: validated,
-    authMethods,
+    authMethods: authMethods.map(({ method }) => ({ method })),
     schema: {
       ...schema.toJSONSchema({ target: 'draft-07', io: 'input' }),
     } as JsonObject,
     matchAuth,
-  };
+  } as unknown as ConnectionType<
+    TType,
+    z.infer<TConfigSchema>,
+    ConnectionAuthMethodsFromSchemas<TAuthMethods>
+  >;
   connectionTypeValidators.set(connectionType, schema);
   return connectionType;
 }
