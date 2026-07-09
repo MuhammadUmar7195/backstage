@@ -19,6 +19,7 @@ import type {
   ConnectionAuthMethod,
   ConnectionType,
   MatchAuth,
+  WithoutReservedAuthMethods,
   WithoutReservedFields,
 } from '../api/ConnectionType';
 
@@ -27,6 +28,7 @@ type ConnectionAuthMethodSchema<
   TConfigSchema extends z.ZodObject = z.ZodObject,
 > = {
   method: TMethod;
+  title: string;
   configSchema: TConfigSchema;
 };
 
@@ -79,17 +81,19 @@ export function createConnectionType<
   type: TType;
   title: string;
   configSchema: WithoutReservedFields<TConfigSchema>;
-  authMethods: TAuthMethods;
+  authMethods: WithoutReservedAuthMethods<TAuthMethods>;
   matchAuth?: MatchAuth<ConnectionAuthMethodsFromSchemas<TAuthMethods>>;
 }): ConnectionType<
   TType,
   z.infer<TConfigSchema>,
   ConnectionAuthMethodsFromSchemas<TAuthMethods>
 > {
-  const authOptions = authMethods.map(am =>
+  const validatedAuthMethods = authMethods as TAuthMethods;
+  const authOptions = validatedAuthMethods.map(am =>
     am.configSchema
       .extend({
         method: z.literal(am.method),
+        title: z.string().min(1).optional(),
         match: matchSchema,
       })
       .strict(),
@@ -113,7 +117,10 @@ export function createConnectionType<
   const connectionType = {
     type,
     title,
-    authMethods: authMethods.map(({ method }) => ({ method })),
+    authMethods: validatedAuthMethods.map(({ method, title: authTitle }) => ({
+      method,
+      title: authTitle,
+    })),
     schema: {
       ...schema.toJSONSchema({ target: 'draft-07', io: 'input' }),
     } as JsonObject,

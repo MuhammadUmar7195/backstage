@@ -28,6 +28,7 @@ import {
 } from '@backstage/backend-test-utils';
 import request from 'supertest';
 import crypto from 'node:crypto';
+import type { JsonObject } from '@backstage/types';
 import { OidcRouter } from './OidcRouter';
 import { UserInfoDatabase } from '../database/UserInfoDatabase';
 import { OidcDatabase } from '../database/OidcDatabase';
@@ -64,7 +65,15 @@ describe('OidcRouter', () => {
     mockFetchCimdMetadata.mockReset();
   });
 
-  async function createRouter(databaseId: TestDatabaseId) {
+  async function createRouter(
+    databaseId: TestDatabaseId,
+    authConfig: JsonObject = {
+      experimentalDynamicClientRegistration: {
+        enabled: true,
+        allowedRedirectUriPatterns: ['*'],
+      },
+    },
+  ) {
     const knex = await databases.init(databaseId);
 
     await knex.migrate.latest({
@@ -93,14 +102,10 @@ describe('OidcRouter', () => {
 
     const mockAuth = mockServices.auth.mock();
     const mockHttpAuth = mockServices.httpAuth.mock();
+    const mockLogger = mockServices.logger.mock();
     const mockConfig = mockServices.rootConfig({
       data: {
-        auth: {
-          experimentalDynamicClientRegistration: {
-            enabled: true,
-            allowedRedirectUriPatterns: ['*'],
-          },
-        },
+        auth: authConfig,
       },
     });
 
@@ -111,7 +116,7 @@ describe('OidcRouter', () => {
       userInfo: userInfoDatabase,
       oidc: oidcDatabase,
       config: mockConfig,
-      logger: mockServices.logger.mock(),
+      logger: mockLogger,
     });
 
     const oidcRouter = OidcRouter.create({
@@ -119,7 +124,7 @@ describe('OidcRouter', () => {
       tokenIssuer: mockTokenIssuer,
       baseUrl: 'http://localhost:7000',
       appUrl: 'http://localhost:3000',
-      logger: mockServices.logger.mock(),
+      logger: mockLogger,
       userInfo: userInfoDatabase,
       oidc: oidcDatabase,
       httpAuth: mockHttpAuth,
@@ -135,6 +140,7 @@ describe('OidcRouter', () => {
         userInfo: userInfoDatabase,
         service: oidcService,
         tokenIssuer: mockTokenIssuer,
+        logger: mockLogger,
       },
     };
   }
@@ -245,6 +251,34 @@ describe('OidcRouter', () => {
   }
 
   describe.each(databases.eachSupportedId())('%p', databaseId => {
+    describe('deprecation warnings', () => {
+      it('should warn when DCR is enabled', async () => {
+        const {
+          router,
+          mocks: { logger },
+        } = await createRouter(databaseId);
+
+        router.getRouter();
+
+        expect(logger.warn).toHaveBeenCalledWith(
+          "DEPRECATION WARNING: The 'auth.experimentalDynamicClientRegistration' configuration is deprecated. Migrate to Client ID Metadata Documents (CIMD) using 'auth.clientIdMetadataDocuments'.",
+        );
+      });
+
+      it('should not warn when only CIMD is enabled', async () => {
+        const {
+          router,
+          mocks: { logger },
+        } = await createRouter(databaseId, {
+          experimentalClientIdMetadataDocuments: { enabled: true },
+        });
+
+        router.getRouter();
+
+        expect(logger.warn).not.toHaveBeenCalled();
+      });
+    });
+
     describe('/v1/userinfo', () => {
       it('should return user info for full tokens', async () => {
         const {
@@ -1298,7 +1332,7 @@ describe('OidcRouter', () => {
           undefined,
           {
             experimentalDynamicClientRegistration: { enabled: false },
-            experimentalClientIdMetadataDocuments: {
+            clientIdMetadataDocuments: {
               enabled: true,
               allowedClientIdPatterns: ['https://example.com/*'],
               allowedRedirectUriPatterns: ['*'],
@@ -1587,7 +1621,7 @@ describe('OidcRouter', () => {
           config: mockServices.rootConfig({
             data: {
               auth: {
-                experimentalClientIdMetadataDocuments: {
+                clientIdMetadataDocuments: {
                   enabled: true,
                   allowedClientIdPatterns: ['*'],
                   allowedRedirectUriPatterns: ['*'],
@@ -1681,7 +1715,7 @@ describe('OidcRouter', () => {
         const mockConfig = mockServices.rootConfig({
           data: {
             auth: {
-              experimentalClientIdMetadataDocuments: {
+              clientIdMetadataDocuments: {
                 enabled: true,
                 allowedClientIdPatterns: ['*'],
                 allowedRedirectUriPatterns: ['*'],

@@ -55,8 +55,11 @@ export class IdentityAuthInjectorFetchMiddleware implements FetchMiddleware {
     return endpointConfigs.flatMap(c => {
       const target =
         typeof c.get('target') === 'object'
-          ? c.getString('target.external')
+          ? c.getOptionalString('target.external')
           : c.getString('target');
+      if (!target) {
+        return [];
+      }
       const plugins = c.getStringArray('plugins');
       return plugins.map(pluginId =>
         target.replace(/\{\{\s*pluginId\s*\}\}/g, pluginId),

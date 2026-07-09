@@ -41,6 +41,7 @@ export type ConnectionAuthMethod<
   _TConfig extends object = object,
 > = {
   method: TMethod;
+  title: string;
 };
 
 // @public (undocumented)
@@ -53,6 +54,7 @@ export type ConnectionAuthValue<TAuthMethod extends ConnectionAuthMethod> =
   TAuthMethod extends ConnectionAuthMethod<infer TMethod, infer TConfig>
     ? {
         method: TMethod;
+        title: string;
       } & TConfig
     : never;
 

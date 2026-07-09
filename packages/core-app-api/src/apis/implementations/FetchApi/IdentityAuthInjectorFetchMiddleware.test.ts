@@ -144,6 +144,10 @@ describe('IdentityAuthInjectorFetchMiddleware', () => {
               },
               plugins: ['q4'],
             },
+            {
+              target: { internal: 'https://internal.example.com' },
+              plugins: ['internal'],
+            },
           ],
         },
       });

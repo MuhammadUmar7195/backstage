@@ -989,7 +989,7 @@ describe('OidcService', () => {
             databaseId,
             config: {
               auth: {
-                experimentalClientIdMetadataDocuments: {
+                clientIdMetadataDocuments: {
                   enabled: true,
                   allowedClientIdPatterns: ['*'],
                   allowedRedirectUriPatterns: ['*'],
@@ -1007,12 +1007,29 @@ describe('OidcService', () => {
           expect(config).not.toHaveProperty('registration_endpoint');
         });
 
+        it('should support the deprecated experimental CIMD configuration', async () => {
+          const { service } = await createOidcService({
+            databaseId,
+            config: {
+              auth: {
+                experimentalClientIdMetadataDocuments: {
+                  enabled: true,
+                },
+              },
+            },
+          });
+
+          const config = service.getConfiguration();
+
+          expect(config.client_id_metadata_document_supported).toBe(true);
+        });
+
         it('should not include client_id_metadata_document_supported when CIMD is disabled', async () => {
           const { service } = await createOidcService({
             databaseId,
             config: {
               auth: {
-                experimentalClientIdMetadataDocuments: { enabled: false },
+                clientIdMetadataDocuments: { enabled: false },
               },
             },
           });
@@ -1032,7 +1049,7 @@ describe('OidcService', () => {
             databaseId,
             config: {
               auth: {
-                experimentalClientIdMetadataDocuments: {
+                clientIdMetadataDocuments: {
                   enabled: true,
                   allowedClientIdPatterns: ['https://example.com/*'],
                   allowedRedirectUriPatterns: ['*'],
@@ -1080,7 +1097,7 @@ describe('OidcService', () => {
             databaseId,
             config: {
               auth: {
-                experimentalClientIdMetadataDocuments: { enabled: false },
+                clientIdMetadataDocuments: { enabled: false },
               },
             },
           });
@@ -1097,7 +1114,7 @@ describe('OidcService', () => {
             databaseId,
             config: {
               auth: {
-                experimentalClientIdMetadataDocuments: {
+                clientIdMetadataDocuments: {
                   enabled: true,
                   allowedClientIdPatterns: ['*'],
                 },
@@ -1126,7 +1143,7 @@ describe('OidcService', () => {
             databaseId,
             config: {
               auth: {
-                experimentalClientIdMetadataDocuments: {
+                clientIdMetadataDocuments: {
                   enabled: true,
                   allowedClientIdPatterns: ['*'],
                 },
@@ -1149,7 +1166,7 @@ describe('OidcService', () => {
             databaseId,
             config: {
               auth: {
-                experimentalClientIdMetadataDocuments: {
+                clientIdMetadataDocuments: {
                   enabled: true,
                   allowedClientIdPatterns: ['*'],
                   allowedRedirectUriPatterns: ['*'],
@@ -1183,7 +1200,7 @@ describe('OidcService', () => {
             databaseId,
             config: {
               auth: {
-                experimentalClientIdMetadataDocuments: { enabled: false },
+                clientIdMetadataDocuments: { enabled: false },
               },
             },
           });
@@ -1202,7 +1219,7 @@ describe('OidcService', () => {
             databaseId,
             config: {
               auth: {
-                experimentalClientIdMetadataDocuments: {
+                clientIdMetadataDocuments: {
                   enabled: true,
                   allowedClientIdPatterns: ['https://trusted.com/*'],
                 },
@@ -1224,7 +1241,7 @@ describe('OidcService', () => {
             databaseId,
             config: {
               auth: {
-                experimentalClientIdMetadataDocuments: {
+                clientIdMetadataDocuments: {
                   enabled: true,
                   allowedClientIdPatterns: ['https://example.com/*'],
                 },
@@ -1252,7 +1269,7 @@ describe('OidcService', () => {
             databaseId,
             config: {
               auth: {
-                experimentalClientIdMetadataDocuments: {
+                clientIdMetadataDocuments: {
                   enabled: true,
                   allowedClientIdPatterns: ['*'],
                   allowedRedirectUriPatterns: ['*'],
@@ -1275,7 +1292,7 @@ describe('OidcService', () => {
             databaseId,
             config: {
               auth: {
-                experimentalClientIdMetadataDocuments: {
+                clientIdMetadataDocuments: {
                   enabled: true,
                   allowedClientIdPatterns: ['*'],
                   allowedRedirectUriPatterns: ['https://*.example.com/*'],
@@ -1303,7 +1320,7 @@ describe('OidcService', () => {
             databaseId,
             config: {
               auth: {
-                experimentalClientIdMetadataDocuments: {
+                clientIdMetadataDocuments: {
                   enabled: true,
                   allowedClientIdPatterns: ['*'],
                   allowedRedirectUriPatterns: ['*'],
@@ -1338,7 +1355,7 @@ describe('OidcService', () => {
             databaseId,
             config: {
               auth: {
-                experimentalClientIdMetadataDocuments: {
+                clientIdMetadataDocuments: {
                   enabled: true,
                   allowedClientIdPatterns: ['*'],
                   allowedRedirectUriPatterns: ['*'],
@@ -1367,7 +1384,7 @@ describe('OidcService', () => {
             databaseId,
             config: {
               auth: {
-                experimentalClientIdMetadataDocuments: {
+                clientIdMetadataDocuments: {
                   enabled: true,
                   allowedClientIdPatterns: ['*'],
                   allowedRedirectUriPatterns: [
@@ -1405,7 +1422,7 @@ describe('OidcService', () => {
             databaseId,
             config: {
               auth: {
-                experimentalClientIdMetadataDocuments: {
+                clientIdMetadataDocuments: {
                   enabled: true,
                   allowedClientIdPatterns: ['*'],
                   allowedRedirectUriPatterns: [
@@ -1443,7 +1460,7 @@ describe('OidcService', () => {
             databaseId,
             config: {
               auth: {
-                experimentalClientIdMetadataDocuments: {
+                clientIdMetadataDocuments: {
                   enabled: true,
                   allowedClientIdPatterns: ['*'],
                   allowedRedirectUriPatterns: ['http://localhost:*'],
@@ -1467,7 +1484,7 @@ describe('OidcService', () => {
             databaseId,
             config: {
               auth: {
-                experimentalClientIdMetadataDocuments: {
+                clientIdMetadataDocuments: {
                   enabled: true,
                   allowedClientIdPatterns: ['*'],
                   allowedRedirectUriPatterns: ['http://localhost:*'],
@@ -1491,7 +1508,7 @@ describe('OidcService', () => {
             databaseId,
             config: {
               auth: {
-                experimentalClientIdMetadataDocuments: {
+                clientIdMetadataDocuments: {
                   enabled: true,
                   allowedClientIdPatterns: ['*'],
                   allowedRedirectUriPatterns: ['*'],
@@ -1516,7 +1533,7 @@ describe('OidcService', () => {
             databaseId,
             config: {
               auth: {
-                experimentalClientIdMetadataDocuments: {
+                clientIdMetadataDocuments: {
                   enabled: true,
                   allowedClientIdPatterns: ['*'],
                   allowedRedirectUriPatterns: ['*'],
@@ -1557,7 +1574,7 @@ describe('OidcService', () => {
             databaseId,
             config: {
               auth: {
-                experimentalClientIdMetadataDocuments: {
+                clientIdMetadataDocuments: {
                   enabled: true,
                   allowedClientIdPatterns: ['*'],
                   allowedRedirectUriPatterns: ['*'],
@@ -1609,7 +1626,7 @@ describe('OidcService', () => {
             databaseId,
             config: {
               auth: {
-                experimentalClientIdMetadataDocuments: {
+                clientIdMetadataDocuments: {
                   enabled: true,
                   allowedClientIdPatterns: ['*'],
                   allowedRedirectUriPatterns: ['*'],
@@ -1662,7 +1679,7 @@ describe('OidcService', () => {
             databaseId,
             config: {
               auth: {
-                experimentalClientIdMetadataDocuments: {
+                clientIdMetadataDocuments: {
                   enabled: true,
                   allowedClientIdPatterns: ['*'],
                   allowedRedirectUriPatterns: ['*'],
@@ -1697,7 +1714,7 @@ describe('OidcService', () => {
             databaseId,
             config: {
               auth: {
-                experimentalClientIdMetadataDocuments: {
+                clientIdMetadataDocuments: {
                   enabled: true,
                   allowedClientIdPatterns: ['*'],
                   allowedRedirectUriPatterns: ['*'],

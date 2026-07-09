@@ -152,7 +152,7 @@ export class OidcService {
     const dcrEnabled = this.config.getOptionalBoolean(
       'auth.experimentalDynamicClientRegistration.enabled',
     );
-    const { enabled: cimdEnabled } = this.getCimdConfig();
+    const cimdEnabled = this.isCimdEnabled();
 
     return {
       issuer: this.baseUrl,
@@ -197,6 +197,10 @@ export class OidcService {
       }),
       ...(cimdEnabled && { client_id_metadata_document_supported: true }),
     };
+  }
+
+  public isCimdEnabled(): boolean {
+    return this.getCimdConfig().enabled;
   }
 
   public async listPublicKeys() {
@@ -321,21 +325,22 @@ export class OidcService {
   }
 
   private getCimdConfig() {
+    const configPath = this.config.has('auth.clientIdMetadataDocuments')
+      ? 'auth.clientIdMetadataDocuments'
+      : 'auth.experimentalClientIdMetadataDocuments';
     const enabled =
-      this.config.getOptionalBoolean(
-        'auth.experimentalClientIdMetadataDocuments.enabled',
-      ) ?? false;
+      this.config.getOptionalBoolean(`${configPath}.enabled`) ?? false;
 
     const cliClientId = `${this.baseUrl}/.well-known/oauth-client/cli.json`;
 
     return {
       enabled,
       allowedClientIdPatterns: this.config.getOptionalStringArray(
-        'auth.experimentalClientIdMetadataDocuments.allowedClientIdPatterns',
+        `${configPath}.allowedClientIdPatterns`,
       ) ?? ['https://claude.ai/*', 'https://vscode.dev/*', cliClientId],
       allowedRedirectUriPatterns:
         this.config.getOptionalStringArray(
-          'auth.experimentalClientIdMetadataDocuments.allowedRedirectUriPatterns',
+          `${configPath}.allowedRedirectUriPatterns`,
         ) ?? LOOPBACK_REDIRECT_PATTERNS,
     };
   }
