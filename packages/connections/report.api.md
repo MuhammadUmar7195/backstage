@@ -94,7 +94,9 @@ export type ConnectionType<
   type: TType;
   title: string;
   authMethods: TAuthMethods;
-  schema: JsonObject;
+  schema: JsonObject & {
+    parse(value: unknown): unknown;
+  };
   matchAuth?(
     authMethods: ConnectionAuthValue<TAuthMethods[number]>[],
     query: string,

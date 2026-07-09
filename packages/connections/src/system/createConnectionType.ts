@@ -48,25 +48,6 @@ const matchSchema = z
   .strict()
   .optional();
 
-const connectionTypeValidators = new WeakMap<ConnectionType, z.ZodType>();
-
-/**
- * Parses and validates a full connection object (including framework-owned fields
- * like `auth`, `match`, and `title`) for the given connection type.
- */
-export function parseConnectionTypeConfig(
-  connectionType: ConnectionType,
-  value: unknown,
-): unknown {
-  const validator = connectionTypeValidators.get(connectionType);
-  if (!validator) {
-    throw new Error(
-      `No validator found for connection type "${connectionType.type}"`,
-    );
-  }
-  return validator.parse(value);
-}
-
 export function createConnectionType<
   TType extends string,
   TConfigSchema extends z.ZodObject,
@@ -114,6 +95,14 @@ export function createConnectionType<
       ),
     })
     .strict();
+  const jsonSchema = {
+    ...schema.toJSONSchema({ target: 'draft-07', io: 'input' }),
+  } as unknown as JsonObject & { parse(value: unknown): unknown };
+  Object.defineProperty(jsonSchema, 'parse', {
+    value(value: unknown) {
+      return schema.parse(value);
+    },
+  });
   const connectionType = {
     type,
     title,
@@ -121,15 +110,12 @@ export function createConnectionType<
       method,
       title: authTitle,
     })),
-    schema: {
-      ...schema.toJSONSchema({ target: 'draft-07', io: 'input' }),
-    } as JsonObject,
+    schema: jsonSchema,
     matchAuth,
   } as unknown as ConnectionType<
     TType,
     z.infer<TConfigSchema>,
     ConnectionAuthMethodsFromSchemas<TAuthMethods>
   >;
-  connectionTypeValidators.set(connectionType, schema);
   return connectionType;
 }

@@ -14,10 +14,7 @@
  * limitations under the License.
  */
 import { z } from 'zod/v4';
-import {
-  createConnectionType,
-  parseConnectionTypeConfig,
-} from './createConnectionType';
+import { createConnectionType } from './createConnectionType';
 
 describe('createConnectionType', () => {
   it('builds a single-auth-method connection type whose schema validates correctly', () => {
@@ -53,10 +50,10 @@ describe('createConnectionType', () => {
       expect.arrayContaining(['host', 'type', 'auth']),
     );
     expect(SingleAuthType.schema.required).toHaveLength(3);
-    expect(SingleAuthType.schema).not.toHaveProperty('parse');
+    expect(SingleAuthType.schema.parse).toBeInstanceOf(Function);
 
     expect(() =>
-      parseConnectionTypeConfig(SingleAuthType, {
+      SingleAuthType.schema.parse({
         type: 'single',
         host: 'example.com',
         auth: [{ method: 'token', token: 'abc' }],
@@ -65,7 +62,7 @@ describe('createConnectionType', () => {
 
     // Wrong literal type should fail.
     expect(() =>
-      parseConnectionTypeConfig(SingleAuthType, {
+      SingleAuthType.schema.parse({
         type: 'other',
         host: 'example.com',
         auth: [{ method: 'token', token: 'abc' }],
@@ -74,7 +71,7 @@ describe('createConnectionType', () => {
 
     // Missing required config field should fail.
     expect(() =>
-      parseConnectionTypeConfig(SingleAuthType, {
+      SingleAuthType.schema.parse({
         type: 'single',
         auth: [{ method: 'token', token: 'abc' }],
       }),
@@ -82,7 +79,7 @@ describe('createConnectionType', () => {
 
     // Auth method not in the list should fail.
     expect(() =>
-      parseConnectionTypeConfig(SingleAuthType, {
+      SingleAuthType.schema.parse({
         type: 'single',
         host: 'example.com',
         auth: [{ method: 'other', token: 'abc' }],
@@ -91,7 +88,7 @@ describe('createConnectionType', () => {
 
     // Unknown top-level fields should fail.
     expect(() =>
-      parseConnectionTypeConfig(SingleAuthType, {
+      SingleAuthType.schema.parse({
         type: 'single',
         host: 'example.com',
         host2: 'example.com',
@@ -101,7 +98,7 @@ describe('createConnectionType', () => {
 
     // Optional title field should be accepted.
     expect(
-      parseConnectionTypeConfig(SingleAuthType, {
+      SingleAuthType.schema.parse({
         type: 'single',
         host: 'example.com',
         title: 'My Production Instance',
@@ -111,7 +108,7 @@ describe('createConnectionType', () => {
 
     // Omitting title should still work.
     expect(
-      parseConnectionTypeConfig(SingleAuthType, {
+      SingleAuthType.schema.parse({
         type: 'single',
         host: 'example.com',
         auth: [{ method: 'token', token: 'abc' }],
@@ -120,7 +117,7 @@ describe('createConnectionType', () => {
 
     // Optional auth method title field should be accepted.
     expect(
-      parseConnectionTypeConfig(SingleAuthType, {
+      SingleAuthType.schema.parse({
         type: 'single',
         host: 'example.com',
         auth: [{ method: 'token', title: 'Production Token', token: 'abc' }],
@@ -129,7 +126,7 @@ describe('createConnectionType', () => {
 
     // Auth method title must not be empty when provided.
     expect(() =>
-      parseConnectionTypeConfig(SingleAuthType, {
+      SingleAuthType.schema.parse({
         type: 'single',
         host: 'example.com',
         auth: [{ method: 'token', title: '', token: 'abc' }],
@@ -181,7 +178,7 @@ describe('createConnectionType', () => {
 
     // Both auth methods accepted in the same connection.
     expect(() =>
-      parseConnectionTypeConfig(MultiAuthType, {
+      MultiAuthType.schema.parse({
         type: 'multi',
         host: 'example.com',
         auth: [
@@ -193,7 +190,7 @@ describe('createConnectionType', () => {
 
     // Auth config must match the discriminator.
     expect(() =>
-      parseConnectionTypeConfig(MultiAuthType, {
+      MultiAuthType.schema.parse({
         type: 'multi',
         host: 'example.com',
         auth: [{ method: 'app', token: 'abc' }],
@@ -202,7 +199,7 @@ describe('createConnectionType', () => {
 
     // Unknown discriminator should fail.
     expect(() =>
-      parseConnectionTypeConfig(MultiAuthType, {
+      MultiAuthType.schema.parse({
         type: 'multi',
         host: 'example.com',
         auth: [{ method: 'oauth' }],
@@ -211,7 +208,7 @@ describe('createConnectionType', () => {
 
     // Empty auth array is allowed by the array schema.
     expect(() =>
-      parseConnectionTypeConfig(MultiAuthType, {
+      MultiAuthType.schema.parse({
         type: 'multi',
         host: 'example.com',
         auth: [],
