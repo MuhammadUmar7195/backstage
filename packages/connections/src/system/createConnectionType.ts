@@ -104,7 +104,7 @@ export function createConnectionType<
     },
     schema() {
       return { schema: structuredClone(jsonSchema) };
-    }
+    },
   };
   const connectionType = {
     type,
