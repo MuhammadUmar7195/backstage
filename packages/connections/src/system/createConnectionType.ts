@@ -103,8 +103,8 @@ export function createConnectionType<
       return schema.parse(input);
     },
     schema() {
-      return { schema: jsonSchema };
-    },
+      return { schema: structuredClone(jsonSchema) };
+    }
   };
   const connectionType = {
     type,
