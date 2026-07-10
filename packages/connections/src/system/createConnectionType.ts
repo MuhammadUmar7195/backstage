@@ -95,15 +95,16 @@ export function createConnectionType<
       ),
     })
     .strict();
-  const jsonSchema = {
-    ...schema.toJSONSchema({ target: 'draft-07', io: 'input' }),
-  } as JsonObject;
+  let cachedJsonSchema: JsonObject | undefined;
   const portableSchema = {
     parse(input: unknown) {
       return schema.parse(input);
     },
     schema() {
-      return { schema: structuredClone(jsonSchema) };
+      if (!cachedJsonSchema) {
+        cachedJsonSchema = schema.toJSONSchema({ target: 'draft-07', io: 'input' }) as JsonObject;
+      }
+      return { schema: structuredClone(cachedJsonSchema) };
     },
   };
   const connectionType = {
