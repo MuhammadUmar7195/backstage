@@ -53,13 +53,14 @@ describe('createConnectionType', () => {
     );
     expect(SingleAuthType.configSchema.parse).toBeInstanceOf(Function);
 
-    expect(() =>
-      SingleAuthType.configSchema.parse({
-        type: 'single',
-        host: 'example.com',
-        auth: [{ method: 'token', token: 'abc' }],
-      }),
-    ).not.toThrow();
+    const parsed = SingleAuthType.configSchema.parse({
+      type: 'single',
+      host: 'example.com',
+      auth: [{ method: 'token', token: 'abc' }],
+    });
+    expect(parsed.type).toBe('single');
+    expect(parsed.host).toBe('example.com');
+    expect(parsed.auth[0].token).toBe('abc');
 
     // Wrong literal type should fail.
     expect(() =>

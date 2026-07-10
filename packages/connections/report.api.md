@@ -88,13 +88,34 @@ export const connectionsServiceRef: ServiceRef<
 // @public (undocumented)
 export type ConnectionType<
   TType extends string = string,
-  _TConfig extends object = object,
+  TConfig extends object = object,
   TAuthMethods extends readonly ConnectionAuthMethod[] = readonly ConnectionAuthMethod[],
 > = {
   type: TType;
   title: string;
   authMethods: TAuthMethods;
-  configSchema: PortableSchema;
+  configSchema: PortableSchema<
+    TConfig & {
+      type: TType;
+      title?: string;
+      match?: {
+        plugins: string[];
+      };
+      auth: Array<
+        ConnectionAuthValue<TAuthMethods[number]> extends infer TAuth
+          ? TAuth extends any
+            ? Omit<TAuth, 'title'> & {
+                title?: string;
+                match?: {
+                  plugins: string[];
+                };
+              }
+            : never
+          : never
+      >;
+    },
+    unknown
+  >;
   matchAuth?(
     authMethods: ConnectionAuthValue<TAuthMethods[number]>[],
     query: string,

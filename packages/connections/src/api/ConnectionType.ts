@@ -86,13 +86,30 @@ export type PortableSchema<TOutput = unknown, TInput = TOutput> = {
 /** @public */
 export type ConnectionType<
   TType extends string = string,
-  _TConfig extends object = object,
+  TConfig extends object = object,
   TAuthMethods extends readonly ConnectionAuthMethod[] = readonly ConnectionAuthMethod[],
 > = {
   type: TType;
   title: string;
   authMethods: TAuthMethods;
-  configSchema: PortableSchema;
+  configSchema: PortableSchema<
+    TConfig & {
+      type: TType;
+      title?: string;
+      match?: { plugins: string[] };
+      auth: Array<
+        ConnectionAuthValue<TAuthMethods[number]> extends infer TAuth
+          ? TAuth extends any
+            ? Omit<TAuth, 'title'> & {
+                title?: string;
+                match?: { plugins: string[] };
+              }
+            : never
+          : never
+      >;
+    },
+    unknown
+  >;
   // Method shorthand keeps parameter checking bivariant so a narrow
   // ConnectionType (e.g. github) is still assignable to ConnectionType<string>.
   // TODO a default match auth method so this is no longer optional
