@@ -97,12 +97,15 @@ export function createConnectionType<
     .strict();
   const jsonSchema = {
     ...schema.toJSONSchema({ target: 'draft-07', io: 'input' }),
-  } as unknown as JsonObject & { parse(value: unknown): unknown };
-  Object.defineProperty(jsonSchema, 'parse', {
-    value(value: unknown) {
-      return schema.parse(value);
+  } as JsonObject;
+  const portableSchema = {
+    parse(input: unknown) {
+      return schema.parse(input);
     },
-  });
+    schema() {
+      return { schema: jsonSchema };
+    },
+  };
   const connectionType = {
     type,
     title,
@@ -110,7 +113,7 @@ export function createConnectionType<
       method,
       title: authTitle,
     })),
-    schema: jsonSchema,
+    configSchema: portableSchema,
     matchAuth,
   } as unknown as ConnectionType<
     TType,

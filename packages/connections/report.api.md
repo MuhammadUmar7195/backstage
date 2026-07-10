@@ -94,9 +94,7 @@ export type ConnectionType<
   type: TType;
   title: string;
   authMethods: TAuthMethods;
-  schema: JsonObject & {
-    parse(value: unknown): unknown;
-  };
+  configSchema: PortableSchema;
   matchAuth?(
     authMethods: ConnectionAuthValue<TAuthMethods[number]>[],
     query: string,
@@ -422,6 +420,14 @@ export class DefaultConnectionsService {
 // @public (undocumented)
 export type LookupConnectionType<T extends ConnectionTypeKey | ConnectionType> =
   T extends ConnectionTypeKey ? (typeof connectionTypes)[T] : T;
+
+// @public (undocumented)
+export type PortableSchema<TOutput = unknown, TInput = TOutput> = {
+  parse: (input: TInput) => TOutput;
+  schema: () => {
+    schema: JsonObject;
+  };
+};
 
 // (No @packageDocumentation comment for this package)
 ```

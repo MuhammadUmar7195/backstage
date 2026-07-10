@@ -49,7 +49,7 @@ export async function createRouter({
       return;
     }
 
-    res.status(200).json(connectionTypes[type].schema);
+    res.status(200).json(connectionTypes[type].configSchema.schema().schema);
   });
 
   router.get('/find', async (req, res) => {

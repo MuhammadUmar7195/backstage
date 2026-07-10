@@ -241,7 +241,7 @@ export class DefaultConnectionsService {
       throw new InputError(`Unrecognised connection type ${connection.type}`);
     }
 
-    return getConnectionType(connection.type).schema.parse(
+    return getConnectionType(connection.type).configSchema.parse(
       connection,
     ) as RootConnection;
   }

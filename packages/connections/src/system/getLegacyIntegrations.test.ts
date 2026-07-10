@@ -202,7 +202,9 @@ describe('getLegacyIntegrations', () => {
       });
 
       const [converted] = getLegacyIntegrations(config);
-      expect(() => GithubConnectionType.schema.parse(converted)).not.toThrow();
+      expect(() =>
+        GithubConnectionType.configSchema.parse(converted),
+      ).not.toThrow();
     });
   });
 
@@ -317,7 +319,9 @@ describe('getLegacyIntegrations', () => {
       });
 
       const [converted] = getLegacyIntegrations(config);
-      expect(() => GitlabConnectionType.schema.parse(converted)).not.toThrow();
+      expect(() =>
+        GitlabConnectionType.configSchema.parse(converted),
+      ).not.toThrow();
     });
   });
 
@@ -392,7 +396,7 @@ describe('getLegacyIntegrations', () => {
 
       const [converted] = getLegacyIntegrations(config);
       expect(() =>
-        BitbucketCloudConnectionType.schema.parse(converted),
+        BitbucketCloudConnectionType.configSchema.parse(converted),
       ).not.toThrow();
     });
   });
@@ -470,7 +474,7 @@ describe('getLegacyIntegrations', () => {
 
       const [converted] = getLegacyIntegrations(config);
       expect(() =>
-        BitbucketServerConnectionType.schema.parse(converted),
+        BitbucketServerConnectionType.configSchema.parse(converted),
       ).not.toThrow();
     });
   });
@@ -574,7 +578,9 @@ describe('getLegacyIntegrations', () => {
       });
 
       const [converted] = getLegacyIntegrations(config);
-      expect(() => AzureConnectionType.schema.parse(converted)).not.toThrow();
+      expect(() =>
+        AzureConnectionType.configSchema.parse(converted),
+      ).not.toThrow();
     });
   });
 
@@ -627,7 +633,9 @@ describe('getLegacyIntegrations', () => {
       });
 
       const [converted] = getLegacyIntegrations(config);
-      expect(() => GerritConnectionType.schema.parse(converted)).not.toThrow();
+      expect(() =>
+        GerritConnectionType.configSchema.parse(converted),
+      ).not.toThrow();
     });
   });
 
@@ -674,7 +682,9 @@ describe('getLegacyIntegrations', () => {
       });
 
       const [converted] = getLegacyIntegrations(config);
-      expect(() => GiteaConnectionType.schema.parse(converted)).not.toThrow();
+      expect(() =>
+        GiteaConnectionType.configSchema.parse(converted),
+      ).not.toThrow();
     });
   });
 
@@ -773,7 +783,7 @@ describe('getLegacyIntegrations', () => {
 
       const [converted] = getLegacyIntegrations(config);
       expect(() =>
-        AwsCodeCommitConnectionType.schema.parse(converted),
+        AwsCodeCommitConnectionType.configSchema.parse(converted),
       ).not.toThrow();
     });
   });
@@ -856,7 +866,9 @@ describe('getLegacyIntegrations', () => {
       });
 
       const [converted] = getLegacyIntegrations(config);
-      expect(() => AwsS3ConnectionType.schema.parse(converted)).not.toThrow();
+      expect(() =>
+        AwsS3ConnectionType.configSchema.parse(converted),
+      ).not.toThrow();
     });
   });
 
@@ -922,7 +934,7 @@ describe('getLegacyIntegrations', () => {
 
       const [converted] = getLegacyIntegrations(config);
       expect(() =>
-        GoogleGcsConnectionType.schema.parse(converted),
+        GoogleGcsConnectionType.configSchema.parse(converted),
       ).not.toThrow();
     });
   });
@@ -1070,7 +1082,7 @@ describe('getLegacyIntegrations', () => {
 
       const [converted] = getLegacyIntegrations(config);
       expect(() =>
-        AzureBlobStorageConnectionType.schema.parse(converted),
+        AzureBlobStorageConnectionType.configSchema.parse(converted),
       ).not.toThrow();
     });
   });
@@ -1110,7 +1122,9 @@ describe('getLegacyIntegrations', () => {
       });
 
       const [converted] = getLegacyIntegrations(config);
-      expect(() => HarnessConnectionType.schema.parse(converted)).not.toThrow();
+      expect(() =>
+        HarnessConnectionType.configSchema.parse(converted),
+      ).not.toThrow();
     });
   });
 });

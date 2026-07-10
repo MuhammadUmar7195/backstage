@@ -78,6 +78,12 @@ export type MatchAuth<TAuthMethods extends readonly ConnectionAuthMethod[]> = (
 ) => ConnectionAuthValue<TAuthMethods[number]> | undefined;
 
 /** @public */
+export type PortableSchema<TOutput = unknown, TInput = TOutput> = {
+  parse: (input: TInput) => TOutput;
+  schema: () => { schema: JsonObject };
+};
+
+/** @public */
 export type ConnectionType<
   TType extends string = string,
   _TConfig extends object = object,
@@ -86,9 +92,7 @@ export type ConnectionType<
   type: TType;
   title: string;
   authMethods: TAuthMethods;
-  schema: JsonObject & {
-    parse(value: unknown): unknown;
-  };
+  configSchema: PortableSchema;
   // Method shorthand keeps parameter checking bivariant so a narrow
   // ConnectionType (e.g. github) is still assignable to ConnectionType<string>.
   // TODO a default match auth method so this is no longer optional
