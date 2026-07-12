@@ -1,5 +1,15 @@
 # @backstage/core-components
 
+## 0.18.12
+
+### Patch Changes
+
+- 120e7c3: chore(deps): bump `js-yaml` from 4.1.1 to 4.2.0
+- 7ceeaad: Migrated CopyTextButton component from Material-UI to Backstage UI (BUI). Replaced MUI IconButton and Tooltip with BUI ButtonIcon and TooltipTrigger/Tooltip components. This is an internal refactoring that maintains backward compatibility - the component API remains unchanged.
+- Updated dependencies
+  - @backstage/ui@0.17.0
+  - @backstage/core-plugin-api@1.12.8
+
 ## 0.18.12-next.1
 
 ### Patch Changes
